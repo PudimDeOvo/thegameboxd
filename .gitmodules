@@ -1,0 +1,6 @@
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/anbeatrizduarte/LetterPlay.git
+[submodule "backend"]
+	path = backend
+	url = https://github.com/kaynanxd/Fastapi-letterbox-games-DB.git
