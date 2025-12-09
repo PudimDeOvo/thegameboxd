@@ -26,7 +26,7 @@ export function LibraryGames() {
                 id: game.id || game.id_jogo,
                 name: game.name || game.titulo || game.nome,
                 cover_url: cover,
-                rating: game.rating || game.total_rating || game.media || 0,
+                rating: game.rating || game.total_rating || game.media || game.metacritic_rating || 0,
                 genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
                 summary: game.summary || game.descricao || "",
                 screenshots: (game.screenshots || []).map(s => s.url || s),

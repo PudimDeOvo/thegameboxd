@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { TypographyUI, CardUI } from "../ui";
 import { Link } from "react-router-dom";
-import { globalRanking } from "../api/watchListApi" 
+import { getWeeklyRanking } from "../api/watchListApi" 
 
 function Ranking() {
     
@@ -13,7 +13,7 @@ function Ranking() {
     useEffect(() => {
         async function fetchRanking() {
             try {
-                const rawData = await globalRanking();
+                const rawData = await getWeeklyRanking();
 
                 let list = [];
                 
