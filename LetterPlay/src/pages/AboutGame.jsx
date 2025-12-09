@@ -9,7 +9,6 @@ import { getWatchlistFull } from "../Scripts/api/watchListApi";
 export function AboutGame() {
     const { state } = useLocation();
     
-    // Initialize with data passed from previous screen (if any)
     const [gameDetails, setGameDetails] = useState(state?.infosGame || null);
     const [isLoading, setIsLoading] = useState(true);
     const [isFavorite, setIsFavorite] = useState(false); 
