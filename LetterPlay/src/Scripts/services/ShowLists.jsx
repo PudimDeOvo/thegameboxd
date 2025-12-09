@@ -102,11 +102,6 @@ function ShowLists() {
             <TypographyUI as="span" variant="default" className="text-2xl px-4">
               {list.name}
             </TypographyUI>
-            
-            {/* Optional: Show game count */}
-            <span className="text-gray-400 mt-2 text-sm">
-                {list.games.length} {list.games.length === 1 ? 'Jogo' : 'Jogos'}
-            </span>
           </Link>
         ))}
       </div>
@@ -126,7 +121,7 @@ function ShowLists() {
 
         <div className="grid gap-8 w-full max-w-xl text-left mt-12 px-8">
           <TypographyUI as="h2" variant="default" className="text-center">
-             Nova Watchlist
+             Nova Gamelist
           </TypographyUI>
 
           <div className="grid gap-2">

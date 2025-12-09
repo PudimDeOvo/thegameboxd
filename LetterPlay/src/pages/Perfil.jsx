@@ -1,53 +1,133 @@
 import React, { useEffect, useState } from "react";
-import { HeaderUI, TypographyUI, Popup } from "../Scripts/ui";
-import imageBG from "../assets/image18.png";
-import avatarPerfil from '/src/assets/GenericAvatar.png';
-import logo from '/src/assets/logo.png';
-import iconEdit from '/src/assets/edit.png'
-import { uploadProfilePicture } from "../Scripts/services/userService";
-import { getUserProfile, updateUser} from "../Scripts/services/userService";
+import { Link } from "react-router-dom";
+import { HeaderUI, TypographyUI, Popup, CardUI } from "../Scripts/ui"; 
+import ShowLists from "../Scripts/services/ShowLists";
 
-function OptLists() {
-    const [option, setOption] = useState("favorites");
+// Assets
+import avatarDefault from '/src/assets/GenericAvatar.png';
+import iconEdit from '/src/assets/edit.png';
+
+// API & Services
+import { 
+    uploadProfilePicture, 
+    getUserProfile, 
+    updateUser 
+} from "../Scripts/services/userService";
+
+import { 
+    getFavorites, 
+    getPlayedGames 
+} from '../Scripts/api/watchListApi'; 
+
+// --- 1. TAB COMPONENT ---
+function OptLists({ activeTab, setActiveTab }) {
+    const tabs = [
+        { id: "favorites", label: "Favoritos" },
+        { id: "jogados",   label: "Jogados" },
+        { id: "mylists",   label: "Minhas Listas" }
+    ];
 
     return (
-        <div className="h-96 w-auto m-16 pl-40">
-            <div className="flex gap-12">
-                <button
-                    className={`cursor-pointer border-b-2 leading-[3rem] px-6 relative z-10 hover:text-secondary
-                ${option === "favorites" ? "!text-secondary border-secondary" : "text-text border-transparent"}`}
-                    onClick={() => setOption("favorites")}
-                >
-                    <TypographyUI as="span" variant="muted" className="!text-inherit">Favoritos</TypographyUI>
-                </button>
-
-                <button
-                    className={`cursor-pointer border-b-2 leading-[3rem] px-6 relative z-10
-                ${option === "jogados" ? "!text-secondary border-secondary" : "text-text border-transparent"}`}
-                    onClick={() => setOption("jogados")}
-                >
-                    <TypographyUI as="span" variant="muted" className="!text-inherit">Jogados</TypographyUI>
-                </button>
-
-                <button
-                    className={`cursor-pointer border-b-2 leading-[3rem] px-6 relative z-10
-                ${option === "mylists" ? "!text-secondary border-secondary" : "text-text border-transparent"}`}
-                    onClick={() => setOption("mylists")}
-                >
-                    <TypographyUI as="span" variant="muted" className="!text-inherit">Listas</TypographyUI>
-                </button>
+        <div className="h-20 w-auto mt-16 px-64 border-b border-gray-800">
+            <div className="flex gap-12 h-full">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`cursor-pointer px-6 relative h-full flex items-center transition-all
+                            ${activeTab === tab.id 
+                                ? "border-b-4 border-secondary text-secondary" 
+                                : "border-b-4 border-transparent text-gray-400 hover:text-white"
+                            }`}
+                    >
+                        <TypographyUI as="span" variant="default" className="text-xl font-bold">
+                            {tab.label}
+                        </TypographyUI>
+                    </button>
+                ))}
             </div>
         </div>
-    )
+    );
 }
 
+// --- 2. REUSABLE GAMES GRID (For Favorites/Played) ---
+function UserGamesGrid({ fetchFunction }) {
+    const [games, setGames] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadGames() {
+            try {
+                // Fetch data using the passed function (getFavorites or getPlayedGames)
+                const rawData = await fetchFunction();
+                
+                // Ensure it's an array
+                let list = [];
+                if (Array.isArray(rawData)) list = rawData;
+                else if (Array.isArray(rawData.data)) list = rawData.data;
+
+                // Map Backend Data -> CardUI Format
+                const formatted = list.map(item => {
+                    // Handle wrapper: API usually returns { status:..., jogo: { ... } }
+                    const game = item.jogo || item; 
+                    
+                    // Clean Image URL
+                    let cover = game.cover?.url || game.cover_url || game.capa_url || "";
+                    if (cover.startsWith("//")) cover = `https:${cover}`;
+                    if (cover.includes("t_thumb")) cover = cover.replace("t_thumb", "t_cover_big");
+
+                    return {
+                        id: game.id || game.id_jogo,
+                        name: game.name || game.titulo,
+                        cover_url: cover,
+                        rating: game.rating || game.total_rating || game.media || 0,
+                        genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
+                        summary: game.summary || game.descricao || "",
+                        screenshots: (game.screenshots || []).map(s => s.url || s),
+                        release_date: game.first_release_date,
+                        // Pass status if available (for the badge)
+                        status: item.status_jogo 
+                    };
+                });
+
+                setGames(formatted);
+            } catch (error) {
+                console.error("Error loading games:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadGames();
+    }, [fetchFunction]);
+
+    if (isLoading) return <div className="text-white p-20 text-center">Carregando jogos...</div>;
+    
+    if (games.length === 0) return <div className="text-gray-500 p-20 text-center text-xl">Nenhum jogo encontrado nesta seção.</div>;
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-64 py-10">
+            {games.map((game, index) => (
+                <Link
+                    key={`${game.id}-${index}`}
+                    to="/aboutGame"
+                    state={{ infosGame: game }}
+                    className="transform transition-transform duration-300 hover:scale-105"
+                >
+                    <CardUI infosGame={game} />
+                </Link>
+            ))}
+        </div>
+    );
+}
+
+// --- 3. MAIN PERFIL COMPONENT ---
 export function Perfil() {
-
-
+    
+    // UI State
     const [isPopUpOpen, setIsPopUpOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
-
-
+    const [activeTab, setActiveTab] = useState("favorites");
+    
+    // User Data State
     const [user, setUser] = useState({
         id: null,
         username: 'Carregando...',
@@ -55,185 +135,212 @@ export function Perfil() {
         profilePicture: ''
     });
 
-
+    // Edit Form State
     const [editForm, setEditForm] = useState({
         username: '',
         email: '',
-        file: null
+        file: null,
+        previewUrl: null
     });
+
+    // Load User Data
+    const carregarDados = async () => {
+        try {
+            const dados = await getUserProfile();
+            setUser(dados);
+            setEditForm(prev => ({ 
+                ...prev, 
+                username: dados.username, 
+                email: dados.email 
+            }));
+        } catch (error){
+            console.error("Erro ao carregar usuário", error);
+        }
+    };
 
     useEffect(() => {
         carregarDados();
     }, []);
 
-    const carregarDados = async () => {
-        try {
-            const dados = await getUserProfile();
-            console.log("Dados recebidos:", dados);
-            setUser(dados);
-
-            setEditForm({ 
-                username: dados.username, 
-                email: dados.email, 
-                file: null 
-            });
-        } catch (error){
-            console.error("Erro ao carregar usuário", error);
-        } finally{
-            setLoading(false);
-        }
-    };
-
+    // Save Profile
     const handleSave = async () => {
-        try{
-
+        try {
             if (!editForm.username || !editForm.email) {
                 alert("Nome e Email são obrigatórios");
                 return;
             }
 
-
+            // Save Text Data
             if(editForm.username !== user.username || editForm.email !== user.email){
-
                 await updateUser(user.id, { username: editForm.username, email: editForm.email});
             }
-            
 
+            // Save Image
             if(editForm.file){
                 await uploadProfilePicture(editForm.file);
             }
 
-            alert("Perfil atualizado com sucesso!");
             setIsPopUpOpen(false); 
-            carregarDados();
+            carregarDados(); // Refresh to show changes
 
         } catch (error) {
             console.error(error);
-            alert("Erro ao atualizar o perfil. Tente novamente.");
+            alert("Erro ao atualizar o perfil.");
         }
     };
 
+    // Popup Logic
     const abrirPopup = () => {
-
-        setEditForm({ username: user.username, email: user.email, file: null });
+        setEditForm({ 
+            username: user.username, 
+            email: user.email, 
+            file: null, 
+            previewUrl: null 
+        });
         setIsPopUpOpen(true);
-    }
+    };
     
     const fecharPopup = () => setIsPopUpOpen(false);
 
     const handleInputChange = (e) => {
-        setEditForm({
-            ...editForm,
-            [e.target.name]: e.target.value
-        });
+        setEditForm({ ...editForm, [e.target.name]: e.target.value });
     };
-
 
     const handleFileChange = (e) => {
         if (e.target.files[0]) {
-            setEditForm({ ...editForm, file: e.target.files[0] });
+            const file = e.target.files[0];
+            setEditForm({ 
+                ...editForm, 
+                file: file,
+                previewUrl: URL.createObjectURL(file) 
+            });
         }
     };
 
+    // Avatar Logic
+    const avatarUrl = user.profilePicture || avatarDefault;
+
     return (
-        <div className="w-full h-auto relative">
+        <div className="w-full min-h-screen bg-background relative">
             <HeaderUI />
-            <div className="absolute top-0 left-0 w-full h-[315px] bg-cover bg-center z-0 bg-black"></div>
+            
+            {/* Header / Cover Area */}
+            <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-b from-gray-900 to-background z-0"></div>
 
-            <div className="flex items-center justify-between h-auto w-auto z-10 relative mt-36 px-64">
-                <div className="flex items-center gap-8">
+            {/* Profile Info Section */}
+            <div className="flex items-end justify-between h-auto w-auto z-10 relative mt-48 px-64">
+                <div className="flex items-end gap-8">
+                    <img 
+                        src={avatarUrl} 
+                        alt="Profile" 
+                        className="w-40 h-40 rounded-full object-cover border-4 border-background shadow-2xl bg-gray-800" 
+                    />
 
-                    <img src={avatarPerfil} alt="" className="size-32 rounded-full object-cover" />
-
-                    <div className="grid">
-
-                        <TypographyUI as="span" variant="titulo" className="mt-3 text-5xl">
+                    <div className="grid mb-4">
+                        <TypographyUI as="h1" variant="titulo" className="text-5xl text-white">
                             {user.username}
                         </TypographyUI>
-                        
-
-                        <TypographyUI as="span" variant="muted" className="">
+                        <TypographyUI as="span" variant="muted" className="text-xl">
                             {user.email}
                         </TypographyUI>
                     </div>
                 </div>
 
-                <button onClick={abrirPopup}>
-                    <img src={iconEdit} alt="" className="size-8 -mt-3 cursor-pointer" />
+                <button 
+                    onClick={abrirPopup}
+                    className="mb-6 hover:opacity-80 transition-opacity bg-black/40 p-2 rounded-full"
+                    title="Editar Perfil"
+                >
+                    <img src={iconEdit} alt="Edit" className="w-6 h-6 invert" />
                 </button>
             </div>
 
-            <OptLists />
+            {/* Navigation Tabs */}
+            <OptLists activeTab={activeTab} setActiveTab={setActiveTab} />
 
-            <Popup isOpen={isPopUpOpen} onPopUpClick={fecharPopup} className="bg-primary">
-                <h2 className="text-2xl mb-6 font-semibold">Editar Perfil</h2>
+            {/* DYNAMIC CONTENT AREA */}
+            <div className="min-h-[500px] bg-background pb-20">
+                
+                {activeTab === "favorites" && (
+                    <UserGamesGrid fetchFunction={getFavorites} />
+                )}
 
-                <div className="grid gap-6 text-left">
+                {activeTab === "jogados" && (
+                    <UserGamesGrid fetchFunction={getPlayedGames} />
+                )}
 
-                    <div className="grid">
-                        <label className="mb-1 font-medium">Nome do Perfil:</label>
+                {activeTab === "mylists" && (
+                    <div className="flex justify-center pt-10">
+                        {/* Reusing your ShowLists Component */}
+                        <div className="w-full max-w-[1400px]">
+                            <ShowLists />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* EDIT POPUP */}
+            <Popup isOpen={isPopUpOpen} onPopUpClick={fecharPopup} className="bg-background border border-gray-700">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-white">Editar Perfil</h2>
+                    <button onClick={fecharPopup} className="text-gray-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="grid gap-6 text-left w-[400px]">
+                    <div className="flex justify-center">
+                        <img 
+                            src={editForm.previewUrl || avatarUrl} 
+                            alt="Preview" 
+                            className="w-24 h-24 rounded-full object-cover border-2 border-gray-600"
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <label className="font-medium text-gray-300">Nome de Usuário</label>
                         <input
                             type="text"
                             name="username" 
                             value={editForm.username} 
                             onChange={handleInputChange}
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-black"
-                            placeholder="Digite seu nome"
+                            className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none"
                         />
                     </div>
 
-                    <div className="grid">
-                        <label className="mb-1 font-medium">Email (Handle):</label>
+                    <div className="grid gap-2">
+                        <label className="font-medium text-gray-300">Email</label>
                         <input
                             type="text"
                             name="email" 
                             value={editForm.email} 
                             onChange={handleInputChange} 
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-black"
-                            placeholder="Digite seu email"
+                            className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none"
                         />
                     </div>
 
-                    <div className="grid">
-                        <label className="mb-1 font-medium">Foto de perfil:</label>
+                    <div className="grid gap-2">
+                        <label className="font-medium text-gray-300">Alterar Foto</label>
                         <input
                             type="file"
+                            accept="image/*"
                             onChange={handleFileChange}
-                            className="border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-black"
+                            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/80"
                         />
                     </div>
 
-                    <div className="grid">
-
-                        <label className="mb-1 font-medium">Foto de fundo:</label>
-
-                        <input
-
-                            type="file"
-
-                            className="border border-gray-300 rounded-lg px-3 py-2 bg-gray-50"
-
-                        />
-
+                    <div className="flex gap-4 mt-4">
+                        <button
+                            onClick={fecharPopup}
+                            className="flex-1 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleSave} 
+                            className="flex-1 py-3 rounded-lg bg-primary hover:bg-primary/80 text-white font-bold transition shadow-lg shadow-primary/20"
+                        >
+                            Salvar Alterações
+                        </button>
                     </div>
-
-
-                </div>
-
-                <div className="flex justify-end mt-8 gap-4">
-                    <button
-                        onClick={fecharPopup}
-                        className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition text-black"
-                    >
-                        Cancelar
-                    </button>
-
-                    <button
-                        onClick={handleSave} 
-                        className="px-4 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition"
-                    >
-                        Salvar
-                    </button>
                 </div>
             </Popup>
         </div>

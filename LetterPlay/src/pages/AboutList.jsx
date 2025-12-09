@@ -1,30 +1,36 @@
+
+import { searchGames } from "../Scripts/api/searchApi";
+import { addGameToWatchlist, updateGameStatus } from "../Scripts/api/watchListGameApi";
+import { getWatchlistFull } from "../Scripts/api/watchListApi";
 import React, { useState, useEffect } from "react";
-import { useLocation, Link } from "react-router-dom"; 
+import { useLocation, Link } from "react-router-dom";
 import { HeaderUI, TypographyUI, Popup } from "../Scripts/ui";
 import CardUI from "../Scripts/ui/CardUI";
-import { searchGames } from "../Scripts/api/searchApi";
-import { addGameToWatchlist } from "../Scripts/api/watchListGameApi";
-import { getWatchlistFull } from "../Scripts/api/watchListApi";
 
 export default function AboutList() {
     const { state } = useLocation();
 
+    // Initialize State
     const [listInfo, setListInfo] = useState({
-        id: state?.id || state?.watchlistId || null, 
+        id: state?.id || state?.watchlistId || null,
         name: state?.name || state?.nome || "Carregando...",
+        description: state?.description || state?.descricao || "",
         games: state?.games || []
     });
 
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    
-    // Search States
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isLoadingList, setIsLoadingList] = useState(false);
 
+    const STATUS_OPTIONS = [
+        { label: "Não Iniciado", value: "AINDA NAO JOGADO" },
+        { label: "Concluído",    value: "JOGADO" }, 
+        { label: "Abandonado",   value: "DROPADO" }
+    ];
+
     const openPopup = () => setIsPopupOpen(true);
-    
     const closePopup = () => {
         setIsPopupOpen(false);
         setSearchTerm("");
@@ -36,73 +42,90 @@ export default function AboutList() {
         if (!id) return;
         try {
             const rawData = await getWatchlistFull(id);
-            
-            console.log("Raw JSON:", rawData);
-
-            const rawItems = rawData.jogos || [];
+            const rawItems = rawData.jogos || rawData.games || [];
 
             const formattedGames = rawItems.map((item) => {
-                
-                const gameData = item.jogo; 
-                
-                if (!gameData) return null;
+                const game = item.jogo || item; 
+                if (!game) return null;
 
-                const genres = (gameData.generos || []).map(g => g.nome_genero);
+                let cover = game.cover?.url || game.cover_url || game.capa_url || game.url_capa || "";
+                
+                if (cover.startsWith("//")) cover = `https:${cover}`;
+                
+                if (cover.includes("t_thumb")) {
+                    cover = cover.replace("t_thumb", "t_cover_big");
+                }
 
+                // 2. Return Formatted Object
                 return {
-                    id: gameData.id_jogo,
-                    name: gameData.titulo,
-                    summary: gameData.descricao,
-                    cover_url: gameData.capa_url || gameData.url_capa || "",
-                    genres: genres,
-                    rating: gameData.nota_metacritic || gameData.media_geral || 0,
-                    developer: gameData.desenvolvedora?.nome || "",
-                    status: item.status_jogo 
+                    id: game.id || game.id_jogo,
+                    name: game.name || game.titulo,
+                    cover_url: cover, 
+                    rating: game.rating || game.total_rating || game.media || 0,
+                    genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
+                    status: item.status_jogo || "AINDA NAO JOGADO",
+                    summary: game.summary || game.descricao || "",
+                    screenshots: (game.screenshots || []).map(s => s.url || s),
+                    release_date: game.first_release_date || item.data_lancamento,
+                    involved_companies: game.involved_companies || [],
+                    developer: game.desenvolvedora?.nome || "",
+                    publisher: game.publicadora?.nome || ""
                 };
-            }).filter(Boolean); // Remove any null items
+            }).filter(Boolean);
 
             const formattedList = {
-                id: rawData.id_watchlist,
-                name: rawData.nome,
-                description: rawData.descricao || "", 
+                id: rawData.id_watchlist || rawData.id,
+                name: rawData.nome || rawData.name,
+                description: rawData.descricao || rawData.description || "",
                 games: formattedGames
             };
             
             setListInfo(formattedList);
-
         } catch (error) {
             console.error("Error refreshing list:", error);
         }
     };
 
-    // runs immediately when the page loads/reloads
+    const handleStatusChange = async (gameId, newStatus) => {
+        try {
+            setListInfo(prev => ({
+                ...prev,
+                games: prev.games.map(g => 
+                    String(g.id) === String(gameId) ? { ...g, status: newStatus } : g
+                )
+            }));
+
+            await updateGameStatus(listInfo.id, gameId, newStatus);
+
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Erro ao atualizar status.");
+            refreshList(listInfo.id); // Revert on error
+        }
+    };
+
+    // --- EFFECT: Fetch on Mount ---
     useEffect(() => {
         if (listInfo.id) {
             refreshList(listInfo.id);
         }
-    }, []); // Empty dependency array = runs once on mount
+    }, []); 
 
-
-    // --- Search Logic (Debounce) ---
+    // --- EFFECT: Search Logic ---
     useEffect(() => {
         if (!searchTerm.trim()) {
             setSearchResults([]);
             return;
         }
-
         const delayDebounceFn = setTimeout(async () => {
             try {
                 setIsSearching(true);
                 const response = await searchGames(searchTerm); 
                 
                 let games = [];
-                if (Array.isArray(response)) {
-                    games = response;
-                } else if (response && Array.isArray(response.data)) {
-                    games = response.data;
-                } else if (response && Array.isArray(response.results)) {
-                    games = response.results;
-                }
+                if (Array.isArray(response)) games = response;
+                else if (Array.isArray(response.data)) games = response.data;
+                else if (Array.isArray(response.results)) games = response.results;
 
                 setSearchResults(games);
             } catch (error) {
@@ -112,24 +135,20 @@ export default function AboutList() {
                 setIsSearching(false);
             }
         }, 500);
-
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
 
-
-    // --- Add Game Logic ---
+    // --- ACTION: Add Game ---
     const addGameToList = async (game) => {
         if (!listInfo.id) {
             alert("Erro: ID da lista não encontrado.");
             return;
         }
-
         try {
             setIsLoadingList(true);
             await addGameToWatchlist(listInfo.id, game.id);
-            await refreshList(listInfo.id); // Update UI
+            await refreshList(listInfo.id); 
             closePopup();
-
         } catch (error) {
             if (error.response && error.response.status === 409) {
                 alert(`"${game.name}" já está nesta lista!`);
@@ -142,139 +161,72 @@ export default function AboutList() {
         }
     };
 
-    // --- 3. FAILSAFE: If no ID found (e.g. hard reload cleared state) ---
     if (!listInfo.id) {
-        return (
-            <div className="p-20 text-center">
-                <TypographyUI variant="title" className="text-red-500">
-                    Lista não encontrada.
-                </TypographyUI>
-                <Link to="/watchlists" className="text-primary underline mt-4 block">
-                    Voltar para minhas listas
-                </Link>
-            </div>
-        );
+        return <div className="p-20 text-white">Carregando lista...</div>;
     }
 
     return (
-        <div className="p-10">
+        <div className="p-10 min-h-screen bg-background">
             <HeaderUI />
 
-            {/* List Header */}
             <div>
-                <TypographyUI
-                    as="span"
-                    variant="titulo"
-                    className="block ml-64 mt-24 text-4xl"
-                >
+                <TypographyUI as="span" variant="titulo" className="block ml-64 mt-24 text-4xl">
                     {listInfo.name}
                 </TypographyUI>
             </div>
 
-            {/* Games Grid */}
-            <div className="grid grid-cols-4 gap-10 mt-10 ml-32">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-12 justify-items-center mt-10 ml-10">
                 {listInfo.games.length === 0 && (
-                    <TypographyUI variant="muted">
-                        Nenhum jogo adicionado.
-                    </TypographyUI>
+                     <TypographyUI variant="muted">Nenhum jogo adicionado.</TypographyUI>
                 )}
 
                 {listInfo.games.map((game, index) => (
-                    // Uses ID + Index for unique key
-                    <CardUI key={`${game.id}-${index}`} infosGame={game} />
+                    <div key={`${game.id}-${index}`} className="relative group">
+                        
+                        <Link
+                            to="/aboutGame"
+                            state={{ infosGame: game }} 
+                            className="block transform transition-transform duration-300 hover:scale-105"
+                        >
+                            <CardUI infosGame={game} />
+                        </Link>
+
+                        {/* --- STATUS DROPDOWN --- */}
+                        <div className="absolute top-2 right-2 z-20">
+                            <select
+                                value={game.status}
+                                onClick={(e) => e.preventDefault()} 
+                                onChange={(e) => handleStatusChange(game.id, e.target.value)}
+                                className={`
+                                    appearance-none cursor-pointer text-[10px] font-bold py-1 px-2 rounded-md border shadow-sm outline-none text-center tracking-wide
+                                    ${
+                                      game.status === 'JOGADO' ? 'bg-green-600 border-green-500 text-white' : 
+                                      game.status === 'DROPADO' ? 'bg-red-600 border-red-500 text-white' :
+                                      // Default (AINDA NAO JOGADO)
+                                      'bg-gray-800 border-gray-600 text-gray-300'
+                                    }
+                                `}
+                            >
+                                {STATUS_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value} className="bg-gray-900 text-gray-200">
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                    </div>
                 ))}
             </div>
 
-            {/* Floating Button */}
-            <div className="fixed top-[95%] -translate-y-1/2 right-10 z-50">
-                <button
-                    onClick={openPopup}
-                    className="px-5 py-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary/60 transition-all"
-                >
-                    + Add Game
+            <div className="fixed top-[90%] right-10 z-50">
+                <button onClick={openPopup} className="px-6 py-4 bg-primary text-white font-bold rounded-full shadow-lg hover:bg-primary/80 flex items-center gap-2">
+                    <span className="text-xl">+</span> Adicionar Jogo
                 </button>
             </div>
 
-            {/* Popup */}
-            <Popup
-                isOpen={isPopupOpen}
-                onPopUpClick={closePopup}
-                className="bg-background p-6 w-auto min-w-[500px] max-h-[600px] overflow-y-auto"
-            >
-                <button
-                    onClick={closePopup}
-                    className="absolute top-3 right-3 text-white p-2 rounded-lg hover:bg-black/60"
-                >
-                    ✕
-                </button>
-
-                <TypographyUI variant="titulo" className="text-2xl mb-6">
-                    Select a Game
-                </TypographyUI>
-
-                {/* Search Bar */}
-                <div id="divBarraPesquisa" className="mt-12">
-                    <input
-                        className="rounded-full w-96 h-10 px-4 bg-gray-300 mt-2 text-black focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Digite para pesquisar..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        autoFocus
-                    />
-                </div>
+            <Popup isOpen={isPopupOpen} onPopUpClick={closePopup} className="bg-background p-6 w-auto min-w-[600px] max-h-[70vh] overflow-y-auto">
                 
-                <div className="mt-4 min-h-[20px]">
-                    {isSearching && <p className="text-primary text-sm">Pesquisando...</p>}
-                    {isLoadingList && <p className="text-primary text-sm">Adicionando jogo...</p>}
-                </div>
-
-                <div className="grid gap-4 mt-8">
-                    {searchResults.map((game, index) => {
-                        const isAlreadyAdded = listInfo.games.some(
-                            (savedGame) => Number(savedGame.id) === Number(game.id)
-                        );
-                        
-                        const coverImage = game.cover?.url || game.cover_url || game.cover || "";
-                        const finalCover = coverImage.startsWith("//") ? `https:${coverImage}` : coverImage;
-
-                        return (
-                            <button
-                                key={`${game.id}-${index}`}
-                                disabled={isLoadingList || isAlreadyAdded}
-                                onClick={() => addGameToList(game)}
-                                className={`p-4 rounded-lg text-left flex items-center gap-4 transition-colors 
-                                    ${isAlreadyAdded 
-                                        ? "bg-gray-600 opacity-50 cursor-not-allowed" 
-                                        : "bg-primary hover:bg-primary/40"
-                                    }`}
-                            >
-                                {finalCover ? (
-                                    <img 
-                                        src={finalCover} 
-                                        alt="" 
-                                        className="w-12 h-16 object-cover rounded bg-black/50" 
-                                    />
-                                ) : (
-                                    <div className="w-12 h-16 bg-gray-700 rounded flex items-center justify-center text-xs text-gray-400">
-                                        N/A
-                                    </div>
-                                )}
-                                
-                                <div className="flex flex-col">
-                                    <TypographyUI as="span" variant="default" className="text-sm font-bold text-white">
-                                        {game.name || game.titulo || "Sem Nome"}
-                                    </TypographyUI>
-                                    
-                                    {isAlreadyAdded && (
-                                        <span className="text-xs text-green-400 font-bold uppercase mt-1">
-                                            ✔ Já na lista
-                                        </span>
-                                    )}
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
             </Popup>
         </div>
     );

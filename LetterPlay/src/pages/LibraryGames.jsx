@@ -55,7 +55,7 @@ export function LibraryGames() {
                 if (Array.isArray(rawData)) list = rawData;
                 else if (Array.isArray(rawData.data)) list = rawData.data;
                 else if (Array.isArray(rawData.results)) list = rawData.results;
-                else if (Array.isArray(rawData.ranking)) list = rawData.ranking; // specific for ranking
+                else if (Array.isArray(rawData.ranking)) list = rawData.ranking; 
 
                 setGames(mapGames(list));
 

@@ -28,10 +28,10 @@ export function removeFromFavorites(game_id) {
     .then((r) => r.data);
 }
 
-export function updateGameStatus(watchlist_id, game_id, new_status) {
+export function updateGameStatus(watchlist_id, game_id, status_value) {
   return api
     .patch(`/watchlists/${watchlist_id}/games/${game_id}/status`, {
-      new_status,
+      new_status: status_value 
     })
     .then((r) => r.data);
 }
