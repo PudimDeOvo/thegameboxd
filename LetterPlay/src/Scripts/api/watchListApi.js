@@ -28,6 +28,11 @@ export function globalRanking(page = 1, limit = 20) {
     .then((r) => r.data);
 }
 
+export function getWeeklyRanking() {
+  return api.get('/watchlists/ranking/top-melhores')
+    .then((r) => r.data);
+}
+
 export async function getFavorites() {
   try {
       const myLists = await getMyWatchlists();

@@ -19,7 +19,7 @@ function GameList() {
                 else if (Array.isArray(rawData.ranking)) list = rawData.ranking;
 
                 const formatted = list.map((item) => {
-                    const game = item.jogo || item; // Handle nested objects if any
+                    const game = item.jogo || item; 
 
                     // Safe Cover URL Logic
                     let cover = game.cover?.url || game.cover_url || game.capa_url || game.url_capa || "";

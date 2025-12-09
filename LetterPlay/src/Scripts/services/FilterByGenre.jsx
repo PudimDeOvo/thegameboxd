@@ -3,7 +3,7 @@ import React from "react";
 function FilterByGenre({ onSelect, activeGenre }) {
 
     const genres = [
-        { label: "Todos", value: null }, // Null = fetch global ranking
+        { label: "Todos", value: null }, 
         { label: "Ação (Shooter)", value: "Shooter" }, 
         { label: "Aventura", value: "Adventure" },
         { label: "RPG", value: "Role-playing (RPG)" },
