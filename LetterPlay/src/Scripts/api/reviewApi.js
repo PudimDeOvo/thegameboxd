@@ -3,7 +3,7 @@ import api from "./api";
 export function addReview(game_id, nota, comentario) {
   return api
     .post(`/watchlists/games/reviews/${game_id}`, {
-      nota,
+      nota: Number(nota),
       comentario,
     })
     .then((r) => r.data);

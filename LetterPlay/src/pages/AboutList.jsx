@@ -66,7 +66,7 @@ export default function AboutList() {
                     release_date: game.first_release_date || item.data_lancamento,
                 };
             }).filter(Boolean);
-
+                
             setListInfo({
                 id: rawData.id_watchlist || rawData.id,
                 name: rawData.nome || rawData.name,
