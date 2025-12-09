@@ -16,7 +16,7 @@ function CardUI({ infosGame, className = "" }) {
     //rating
     let rawScore = infosGame.rating || infosGame.metacritic_rating || infosGame.total_rating || 0;
     const hasValidRating = rawScore > 0
-    const finalRating = hasValidRating ? Math.round(rawScore) : "BOSTA";
+    const finalRating = hasValidRating ? Math.round(rawScore) : "-";
 
     const genresList = Array.isArray(infosGame.genres) 
         ? infosGame.genres 

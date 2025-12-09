@@ -3,14 +3,14 @@ import { searchGames } from "../Scripts/api/searchApi";
 import { addGameToWatchlist, updateGameStatus, removeGame } from "../Scripts/api/watchListGameApi";
 import { getWatchlistFull, deleteWatchlist } from "../Scripts/api/watchListApi";
 import React, { useState, useEffect } from "react";
-import { useLocation, Link, useNavigate } from "react-router-dom"; // 1. Import useNavigate
+import { useLocation, Link, useNavigate } from "react-router-dom"; 
 import { HeaderUI, TypographyUI, Popup } from "../Scripts/ui";
 import CardUI from "../Scripts/ui/CardUI";
 
 
 export default function AboutList() {
     const { state } = useLocation();
-    const navigate = useNavigate(); // Hook for redirection
+    const navigate = useNavigate(); 
 
     // Initialize State
     const [listInfo, setListInfo] = useState({
@@ -58,10 +58,12 @@ export default function AboutList() {
                     id: game.id || game.id_jogo,
                     name: game.name || game.titulo,
                     cover_url: cover, 
-                    rating: game.rating || game.total_rating || game.media || 0,
+                    rating: game.rating || game.total_rating || game.media || game.metacritic_rating || 0,
                     genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
                     status: item.status_jogo || "AINDA NAO JOGADO",
                     summary: game.summary || game.descricao || "",
+                    developer: game.desenvolvedora?.nome || game.developer || "Desconhecido",
+                    publisher: game.publicadora?.nome || game.publisher || "Desconhecido",
                     screenshots: (game.screenshots || []).map(s => s.url || s),
                     release_date: game.first_release_date || item.data_lancamento,
                 };
@@ -101,7 +103,6 @@ export default function AboutList() {
         if (!window.confirm("Tem certeza que deseja remover este jogo da lista?")) return;
 
         try {
-            // Optimistic Remove (Remove from UI immediately)
             setListInfo(prev => ({
                 ...prev,
                 games: prev.games.filter(g => String(g.id) !== String(gameId))
@@ -111,7 +112,7 @@ export default function AboutList() {
         } catch (error) {
             console.error("Error removing game:", error);
             alert("Erro ao remover jogo.");
-            refreshList(listInfo.id); // Put it back if error
+            refreshList(listInfo.id); 
         }
     };
 
