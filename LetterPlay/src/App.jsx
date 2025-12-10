@@ -12,7 +12,6 @@ import { Register } from './pages/Register';
 import { Login } from './pages/Login';
 import { Lists } from './pages/Lists';
 import AboutList from "./pages/AboutList";
-import { LoreAccurateAboutGame } from './pages/LoreAccurateAboutGame.jsx';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -28,7 +27,6 @@ function App() {
         <Route path="/login" element={<Login />}></Route>
         <Route path="/lists" element={<Lists />}></Route>
         <Route path="/aboutlist" element={<AboutList />} />
-        <Route path="/loreaccurateaboutgame" element={<LoreAccurateAboutGame />} />
       </Routes>
     </BrowserRouter>
   )

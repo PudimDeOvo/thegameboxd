@@ -80,12 +80,11 @@ function UserGamesGrid({ fetchFunction }) {
                         id: game.id || game.id_jogo,
                         name: game.name || game.titulo,
                         cover_url: cover,
-                        rating: game.rating || game.total_rating || game.media || 0,
+                        rating: game.rating || game.total_rating || game.media || game.metacritic_rating || 0,
                         genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
                         summary: game.summary || game.descricao || "",
                         screenshots: (game.screenshots || []).map(s => s.url || s),
                         release_date: game.first_release_date,
-                        // Pass status if available (for the badge)
                         status: item.status_jogo 
                     };
                 });
@@ -181,7 +180,7 @@ export function Perfil() {
             }
 
             setIsPopUpOpen(false); 
-            carregarDados(); // Refresh to show changes
+            carregarDados(); 
 
         } catch (error) {
             console.error(error);
@@ -271,7 +270,6 @@ export function Perfil() {
 
                 {activeTab === "mylists" && (
                     <div className="flex justify-center pt-10">
-                        {/* Reusing your ShowLists Component */}
                         <div className="w-full max-w-[1400px]">
                             <ShowLists />
                         </div>

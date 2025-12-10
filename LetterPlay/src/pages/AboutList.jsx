@@ -1,4 +1,3 @@
-
 import { searchGames } from "../Scripts/api/searchApi";
 import { addGameToWatchlist, updateGameStatus, removeGame } from "../Scripts/api/watchListGameApi";
 import { getWatchlistFull, deleteWatchlist } from "../Scripts/api/watchListApi";
@@ -6,7 +5,6 @@ import React, { useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom"; 
 import { HeaderUI, TypographyUI, Popup } from "../Scripts/ui";
 import CardUI from "../Scripts/ui/CardUI";
-
 
 export default function AboutList() {
     const { state } = useLocation();
@@ -44,28 +42,39 @@ export default function AboutList() {
         if (!id) return;
         try {
             const rawData = await getWatchlistFull(id);
+            // In your JSON, the array is inside 'jogos'
             const rawItems = rawData.jogos || rawData.games || [];
 
             const formattedGames = rawItems.map((item) => {
                 const game = item.jogo || item; 
                 if (!game) return null;
 
-                let cover = game.cover?.url || game.cover_url || game.capa_url || game.url_capa || "";
+                let cover = game.cover_url || game.cover?.url || game.capa_url || "";
                 if (cover.startsWith("//")) cover = `https:${cover}`;
                 if (cover.includes("t_thumb")) cover = cover.replace("t_thumb", "t_cover_big");
 
                 return {
-                    id: game.id || game.id_jogo,
-                    name: game.name || game.titulo,
+                    // 1. NAVIGATION ID: Use IGDB ID (e.g., 26192) so AboutGame loads the right data
+                    id: game.id_igdb || game.id, 
+
+                    // 2. LOCAL ID: Use Database ID (e.g., 3) for Delete/Update
+                    local_id: game.id_jogo || game.id,
+
+                    name: game.titulo || game.name, // Mapped from 'titulo'
                     cover_url: cover, 
-                    rating: game.rating || game.total_rating || game.media || game.metacritic_rating || 0,
-                    genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
+                    
+                    // Ratings & Metacritic
+                    rating: game.nota_usuario || game.rating || 0,
+                    metacritic: game.nota_metacritic || game.metacritic_rating || null,
+
+                    genres: (game.generos || game.genres || []).map(g => g.nome_genero || g.name || g),
+                    
                     status: item.status_jogo || "AINDA NAO JOGADO",
-                    summary: game.summary || game.descricao || "",
-                    developer: game.desenvolvedora?.nome || game.developer || "Desconhecido",
-                    publisher: game.publicadora?.nome || game.publisher || "Desconhecido",
+                    
+                    summary: game.descricao || game.summary || "",
+                    developer: game.desenvolvedora?.nome || "Desconhecido",
+                    publisher: game.publicadora?.nome || "Desconhecido",
                     screenshots: (game.screenshots || []).map(s => s.url || s),
-                    release_date: game.first_release_date || item.data_lancamento,
                 };
             }).filter(Boolean);
                 
@@ -82,6 +91,11 @@ export default function AboutList() {
 
     // --- ACTION: Update Status ---
     const handleStatusChange = async (gameId, newStatus) => {
+        // Find the game to get its Local ID
+        const game = listInfo.games.find(g => String(g.id) === String(gameId));
+        // Fallback to gameId if local_id is missing, but local_id is preferred
+        const idToUse = game?.local_id || gameId;
+
         try {
             // Optimistic Update
             setListInfo(prev => ({
@@ -90,7 +104,9 @@ export default function AboutList() {
                     String(g.id) === String(gameId) ? { ...g, status: newStatus } : g
                 )
             }));
-            await updateGameStatus(listInfo.id, gameId, newStatus);
+            
+            // Call API with LOCAL ID
+            await updateGameStatus(listInfo.id, idToUse, newStatus);
         } catch (error) {
             console.error("Error updating status:", error);
             alert("Erro ao atualizar status.");
@@ -101,6 +117,9 @@ export default function AboutList() {
     // --- ACTION: Remove Game from List ---
     const handleRemoveGame = async (gameId) => {
         if (!window.confirm("Tem certeza que deseja remover este jogo da lista?")) return;
+        
+        const game = listInfo.games.find(g => String(g.id) === String(gameId));
+        const idToUse = game?.local_id || gameId;
 
         try {
             setListInfo(prev => ({
@@ -108,7 +127,8 @@ export default function AboutList() {
                 games: prev.games.filter(g => String(g.id) !== String(gameId))
             }));
 
-            await removeGame(listInfo.id, gameId);
+            // Call API with LOCAL ID
+            await removeGame(listInfo.id, idToUse);
         } catch (error) {
             console.error("Error removing game:", error);
             alert("Erro ao remover jogo.");
@@ -155,7 +175,7 @@ export default function AboutList() {
         return () => clearTimeout(delayDebounceFn);
     }, [searchTerm]);
 
-    // Add Game Action ...
+    // Add Game Action (Uses IGDB ID because search results come from IGDB)
     const addGameToList = async (game) => {
         if (!listInfo.id) return;
         try {
@@ -194,7 +214,6 @@ export default function AboutList() {
                         className="bg-red-600/20 hover:bg-red-600 p-2 rounded-lg transition-colors group"
                         title="Excluir Lista"
                     >
-                        {/* Trash Icon SVG */}
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -216,14 +235,15 @@ export default function AboutList() {
                             state={{ infosGame: game }} 
                             className="block transform transition-transform duration-300 hover:scale-105"
                         >
+                            {/* CardUI will automatically pick up 'metacritic' from game object */}
                             <CardUI infosGame={game} />
                         </Link>
 
-                        {/* --- REMOVE GAME BUTTON (Top Left) --- */}
+                        {/* --- REMOVE GAME BUTTON --- */}
                         <button
                             onClick={(e) => {
                                 e.preventDefault(); 
-                                handleRemoveGame(game.id);
+                                handleRemoveGame(game.id); // Uses ID to find the game, then uses local_id
                             }}
                             className="absolute top-2 left-2 z-20 bg-black/60 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                             title="Remover jogo da lista"
@@ -233,7 +253,7 @@ export default function AboutList() {
                             </svg>
                         </button>
 
-                        {/* --- STATUS DROPDOWN (Top Right) --- */}
+                        {/* --- STATUS DROPDOWN --- */}
                         <div className="absolute top-2 right-2 z-20">
                             <select
                                 value={game.status}
@@ -285,7 +305,7 @@ export default function AboutList() {
                 <div className="grid gap-3 mt-6">
                     {searchResults.map((game, index) => {
                         const isAdded = listInfo.games.some(g => Number(g.id) === Number(game.id));
-                        let cover = game.cover?.url || game.cover_url || "";
+                        let cover = game.cover_url || game.cover?.url || "";
                         if (cover.startsWith("//")) cover = `https:${cover}`;
                         return (
                             <button

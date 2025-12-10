@@ -75,7 +75,6 @@ export async function getPlayedGames() {
           const games = list.jogos || list.games || [];
           
           games.forEach(item => {
-              // Check if status is "JOGADO"
               if (item.status_jogo === "JOGADO") {
                   const gameId = item.jogo?.id_jogo || item.id;
                   if (!seenGameIds.has(gameId)) {

@@ -22,16 +22,34 @@ export function LibraryGames() {
                 cover = cover.replace("t_thumb", "t_cover_big");
             }
 
+            let dev = "Desconhecido";
+            let pub = "Desconhecido";
+
+            if (game.desenvolvedora?.nome) dev = game.desenvolvedora.nome;
+            if (game.publicadora?.nome) pub = game.publicadora.nome;
+
+            if (dev === "Desconhecido" && Array.isArray(game.involved_companies)) {
+                const foundDev = game.involved_companies.find(c => c.developer);
+                if (foundDev) dev = foundDev.company?.name || foundDev.name;
+            }
+
+            if (pub === "Desconhecido" && Array.isArray(game.involved_companies)) {
+                const foundPub = game.involved_companies.find(c => c.publisher);
+                if (foundPub) pub = foundPub.company?.name || foundPub.name;
+            }
+
             return {
-                id: game.id || game.id_jogo,
+                id: game.id || game.id_jogo, 
                 name: game.name || game.titulo || game.nome,
                 cover_url: cover,
                 rating: game.rating || game.total_rating || game.media || game.metacritic_rating || 0,
                 genres: (game.genres || game.generos || []).map(g => g.name || g.nome_genero || g),
                 summary: game.summary || game.descricao || "",
+                developer: dev,
+                publisher: pub,
+
                 screenshots: (game.screenshots || []).map(s => s.url || s),
                 release_date: game.first_release_date,
-                involved_companies: game.involved_companies
             };
         });
     };
@@ -104,7 +122,7 @@ export function LibraryGames() {
                             games.map((game) => (
                                 <Link
                                     key={game.id}
-                                    to="/loreAccurateAboutGame"
+                                    to="/aboutGame"
                                     state={{ infosGame: game }}
                                     className="transform transition-transform duration-300 hover:scale-105"
                                 >
