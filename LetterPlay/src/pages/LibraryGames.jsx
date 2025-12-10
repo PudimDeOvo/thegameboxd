@@ -104,7 +104,7 @@ export function LibraryGames() {
                             games.map((game) => (
                                 <Link
                                     key={game.id}
-                                    to="/aboutGame"
+                                    to="/loreAccurateAboutGame"
                                     state={{ infosGame: game }}
                                     className="transform transition-transform duration-300 hover:scale-105"
                                 >

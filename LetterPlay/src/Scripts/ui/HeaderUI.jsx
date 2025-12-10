@@ -91,7 +91,7 @@ function HeaderUI() {
     const handleGameClick = (game) => {
         setShowResults(false);
         setSearchTerm(""); // Clear search bar
-        navigate("/aboutGame", { state: { infosGame: game } });
+        navigate("/loreAccurateAboutGame", { state: { infosGame: game } });
     };
 
     return (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { TypographyUI, CardUI } from "../ui";
 import { Link } from "react-router-dom";
-import { getWeeklyRanking } from "../api/watchListApi" 
+import { globalRanking } from "../api/watchListApi" 
 
 function Ranking() {
     
@@ -13,7 +13,7 @@ function Ranking() {
     useEffect(() => {
         async function fetchRanking() {
             try {
-                const rawData = await getWeeklyRanking();
+                const rawData = await globalRanking();
 
                 let list = [];
                 
@@ -79,7 +79,7 @@ function Ranking() {
                     <div key={game.id} className="relative flex flex-col items-center group">
 
                         <Link
-                            to="/aboutGame"
+                            to="/loreAccurateAboutGame"
                             state={{ infosGame: game }}
                             className="transform transition-transform duration-300 hover:scale-105"
                         >
