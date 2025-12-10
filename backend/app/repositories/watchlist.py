@@ -77,9 +77,10 @@ class WatchlistRepository:
                     nota_metacritic, 
                     id_desenvolvedor, 
                     id_publicadora, 
-                    capa_url
+                    capa_url,
+                    id_igdb
                 )
-                VALUES (:t, :d, :n, :dev, :pub, :capa)
+                VALUES (:t, :d, :n, :dev, :pub, :capa, :igdb)
                 RETURNING id_jogo
             """)
             
@@ -90,7 +91,8 @@ class WatchlistRepository:
                 "n": game.nota_metacritic,
                 "dev": game.id_desenvolvedor,
                 "pub": game.id_publicadora,
-                "capa": game.capa_url  
+                "capa": game.capa_url,
+                "igdb": game.id_igdb
             }
             
             res = await self.session.execute(stmt, params)

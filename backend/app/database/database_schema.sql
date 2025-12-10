@@ -52,6 +52,7 @@ CREATE TABLE jogos (
     capa_url VARCHAR(255),
     nota_metacritic INTEGER,
     id_desenvolvedor INTEGER,
+    id_igdb INTEGER,
     id_publicadora INTEGER,
     FOREIGN KEY(id_desenvolvedor) REFERENCES desenvolvedoras(id_empresa),
     FOREIGN KEY(id_publicadora) REFERENCES publicadoras(id_empresa)

@@ -180,7 +180,8 @@ class WatchlistService:
                 nota_metacritic=nota,
                 id_desenvolvedor=dev_id,
                 id_publicadora=pub_id,
-                capa_url=cover_url
+                capa_url=cover_url,
+                id_igdb=igdb_game["id"]
             )
             
             game_id = await self.repository.create_game_raw(novo_jogo)

@@ -67,6 +67,7 @@ class Jogo:
 
     id_jogo: Mapped[int] = mapped_column(init=False, primary_key=True)
     titulo: Mapped[str] = mapped_column(String(255), nullable=False)
+    id_igdb: Mapped[int | None] = mapped_column(nullable=True, default=None)
 
     id_desenvolvedor: Mapped[int | None] = mapped_column(
         ForeignKey("desenvolvedoras.id_empresa"), nullable=True, default=None
