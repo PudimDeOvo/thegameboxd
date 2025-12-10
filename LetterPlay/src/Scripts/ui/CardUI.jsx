@@ -13,7 +13,7 @@ function CardUI({ infosGame, className = "" }) {
     }
     const finalCover = rawCover.replace("t_thumb", "t_cover_big");
 
-    //rating
+
     let rawScore = infosGame.rating || infosGame.metacritic_rating || infosGame.total_rating || 0;
     const hasValidRating = rawScore > 0
     const finalRating = hasValidRating ? Math.round(rawScore) : "-";
@@ -26,7 +26,7 @@ function CardUI({ infosGame, className = "" }) {
     return (
         <div className={`w-72 flex flex-col ${className}`}>
             
-            {/* Cover Image */}
+
             <div 
                 id="capaJogo" 
                 className="bg-cover bg-center h-[420px] rounded-xl shadow-lg bg-gray-800" 
@@ -34,7 +34,7 @@ function CardUI({ infosGame, className = "" }) {
                     backgroundImage: finalCover ? `url(${finalCover})` : "none" 
                 }}
             >
-                {/* Fallback if no image */}
+
                 {!finalCover && (
                     <div className="h-full w-full flex items-center justify-center text-gray-500">
                         No Image
@@ -42,24 +42,23 @@ function CardUI({ infosGame, className = "" }) {
                 )}
             </div>
 
-            {/* Title */}
             <div id="tituloJogo" className="pt-4 px-1">
                 <Typography as="span" variant="default" className="font-bold text-lg leading-tight block truncate">
                     {infosGame.name || "Sem nome"}
                 </Typography>
             </div>
 
-            {/* Bottom Info */}
+
             <div className="flex justify-between items-start mt-2 px-1">
                 
-                {/* Genres */}
+
                 <div id="generosJogo" className="w-2/3">
                     <Typography as="span" variant="muted" className="text-sm line-clamp-2">
                         {genresList.length > 0 ? genresList.join(", ") : "Sem gênero"}
                     </Typography>
                 </div>
 
-                {/* Rating Badge */}
+
                 <div id="avaliacaoJogo" className="bg-primary px-2 py-1 rounded-lg flex items-center gap-1 shadow-md shrink-0">
                     <img src={iconStar} alt="Star" className="h-4 w-4" />
                     <span className="text-white font-bold text-sm">

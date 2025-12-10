@@ -23,3 +23,10 @@ export async function removeGameFromFavoritos(gameId) {
         throw error;
     }
 }
+
+export async function getAllUsers() {
+  return api
+    .get(`/users/todos`)
+    .then((r) => r.data);
+}
+

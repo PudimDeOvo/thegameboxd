@@ -4,9 +4,31 @@ import { useLocation } from "react-router-dom";
 import iconStar from '/src/assets/Star.png';
 import { addGameToFavorites, removeFromFavorites } from "../Scripts/api/watchListGameApi";
 
+// --- [NOVO] Imports para Avaliação ---
+import { addReview, getAllReviews, deleteReview } from "../Scripts/api/reviewApi";
+import { getAllUsers } from "../Scripts/api/userApi";
+
+// --- [NOVO] Componente Visual de Estrelas ---
+const StarRating = ({ rating, interactive = false, setRating = null }) => {
+    return (
+        <div className="flex cursor-pointer">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <span 
+                    key={star} 
+                    onClick={() => interactive && setRating && setRating(star)}
+                    className={`text-xl transition-colors ${interactive ? "hover:scale-110" : ""} ${star <= rating ? "text-yellow-400" : "text-gray-600"}`}
+                >
+                    ★
+                </span>
+            ))}
+        </div>
+    );
+};
+
 export function AboutGame() {
     const { state } = useLocation();
 
+    // --- 1. DATA ADAPTER ---
     const formatGameData = (data) => {
         if (!data) return null;
 
@@ -54,6 +76,7 @@ export function AboutGame() {
             release_date: g.data_lancamento || g.first_release_date
         };
     };
+
     // --- 2. STATE ---
     const [gameDetails, setGameDetails] = useState(null);
     const [isFavorite, setIsFavorite] = useState(false);
@@ -63,7 +86,37 @@ export function AboutGame() {
     const [isPopUpOpen, setIsPopUpOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
 
-    // --- 3. LOAD DATA ---
+    // --- [NOVO] States para Avaliação ---
+    const [reviews, setReviews] = useState([]);
+    const [reviewForm, setReviewForm] = useState({ nota: 5, comentario: "" });
+    const [currentUser, setCurrentUser] = useState(null);
+    const [usersMap, setUsersMap] = useState({}); // Mapa ID -> Nome
+    const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+
+    // --- 3. EFEITOS E CARREGAMENTO ---
+    
+    // [NOVO] Carregar Usuário Logado e Lista de Usuários (para os nomes)
+    useEffect(() => {
+        const storedUser = localStorage.getItem("@LetterPlay:user"); // Ajuste a chave se for diferente
+        if (storedUser) {
+            try { setCurrentUser(JSON.parse(storedUser)); } catch (e) {}
+        }
+
+        const fetchUsers = async () => {
+            try {
+                const response = await getAllUsers();
+                const list = response.items || response || [];
+                if (Array.isArray(list)) {
+                    const map = {};
+                    list.forEach(u => { if(u.id && u.username) map[u.id] = u.username; });
+                    setUsersMap(map);
+                }
+            } catch (e) { console.error("Erro users map", e); }
+        };
+        fetchUsers();
+    }, []);
+
+    // Carregar Jogo
     useEffect(() => {
         const loadData = () => {
             let finalData = null;
@@ -79,13 +132,56 @@ export function AboutGame() {
             if (finalData) {
                 setGameDetails(finalData);
                 setIsFavorite(finalData.is_favorite);
+                // [NOVO] Carregar reviews assim que tiver o ID
+                loadReviews(finalData.id);
             }
             setIsLoading(false);
         };
         loadData();
     }, []);
 
-    // --- 4. FAVORITE LOGIC (Add & Remove) ---
+    // --- 4. ACTIONS ---
+
+    // [NOVO] Funções de Review
+    const loadReviews = async (gameId) => {
+        try {
+            setIsLoadingReviews(true);
+            const data = await getAllReviews(gameId);
+            setReviews(data.items || []);
+        } catch (error) {
+            console.error("Erro ao buscar reviews", error);
+        } finally {
+            setIsLoadingReviews(false);
+        }
+    };
+
+    const handlePostReview = async (e) => {
+        e.preventDefault();
+        if (!currentUser) return alert("Você precisa estar logado para avaliar.");
+        if (!reviewForm.comentario.trim()) return alert("Escreva um comentário.");
+
+        try {
+            await addReview(gameDetails.id, reviewForm.nota, reviewForm.comentario);
+            setReviewForm({ nota: 5, comentario: "" }); // Reset form
+            loadReviews(gameDetails.id); // Reload list
+            alert("Avaliação enviada!");
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao enviar avaliação.");
+        }
+    };
+
+    const handleDeleteReview = async (reviewId) => {
+        if (!window.confirm("Tem certeza que deseja apagar esta avaliação?")) return;
+        try {
+            await deleteReview(gameDetails.id, reviewId);
+            loadReviews(gameDetails.id);
+        } catch (error) {
+            alert("Erro ao apagar avaliação.");
+        }
+    };
+
+    // Favoritos (Mantido Original)
     const toggleFavorite = async () => {
         if (!gameDetails?.id) return;
         
@@ -112,7 +208,7 @@ export function AboutGame() {
     if (!gameDetails) return <div className="text-white text-center mt-20">Dados não encontrados.</div>;
 
     return (
-        <div className="w-auto h-auto relative bg-background min-h-screen">
+        <div className="w-auto h-auto relative bg-background min-h-screen pb-20">
             <HeaderUI />
 
             {/* BACKGROUND */}
@@ -153,8 +249,6 @@ export function AboutGame() {
                         <div className="flex flex-col">
                             <span className="text-gray-400 text-sm">Publicadora</span>
                             <span className="text-white font-medium">{gameDetails.publisher}</span>
-                        </div>
-                        <div className="flex flex-col">
                         </div>
                     </div>
                 </div>
@@ -222,6 +316,83 @@ export function AboutGame() {
                     </div>
                 </div>
             </div>
+
+            {/* =======================================================
+                [NOVO] SEÇÃO DE AVALIAÇÕES
+               ======================================================= */}
+            <div className="max-w-5xl mx-auto px-10 border-t border-white/10 pt-10 mt-10">
+                <TypographyUI as="h2" variant="titulo" className="text-3xl mb-8 text-white">
+                    Avaliações da Comunidade
+                </TypographyUI>
+
+                {/* FORMULÁRIO DE NOVA AVALIAÇÃO */}
+                {currentUser ? (
+                    <div className="bg-black/30 p-6 rounded-xl border border-white/10 mb-10 backdrop-blur-md">
+                        <h3 className="text-white text-xl font-semibold mb-4">Deixe sua avaliação</h3>
+                        <form onSubmit={handlePostReview} className="flex flex-col gap-4">
+                            <div className="flex items-center gap-3">
+                                <span className="text-gray-300">Sua nota:</span>
+                                <StarRating 
+                                    rating={reviewForm.nota} 
+                                    interactive={true} 
+                                    setRating={(n) => setReviewForm({...reviewForm, nota: n})} 
+                                />
+                                <span className="text-white font-bold ml-2">{reviewForm.nota}/5</span>
+                            </div>
+                            <textarea
+                                className="w-full bg-black/40 text-white rounded-lg p-3 border border-gray-700 focus:border-primary focus:outline-none resize-none h-24 placeholder-gray-500"
+                                placeholder={`Comentando aqui`}
+                                value={reviewForm.comentario}
+                                onChange={(e) => setReviewForm({ ...reviewForm, comentario: e.target.value })}
+                            />
+                            <button type="submit" className="self-end bg-primary hover:bg-primary/80 text-white px-6 py-2 rounded-lg font-bold transition-all">
+                                Publicar
+                            </button>
+                        </form>
+                    </div>
+                ) : (
+                    <div className="p-6 mb-10 bg-white/5 border border-white/10 rounded-xl text-center text-gray-400">
+                        Faça login para avaliar este jogo.
+                    </div>
+                )}
+
+                {/* LISTA DE REVIEWS */}
+                <div className="flex flex-col gap-4">
+                    {isLoadingReviews ? (
+                        <p className="text-gray-400 text-center">Carregando avaliações...</p>
+                    ) : reviews.length === 0 ? (
+                        <p className="text-gray-500 italic text-center">Nenhuma avaliação ainda. Seja o primeiro!</p>
+                    ) : (
+                        reviews.map((review) => {
+                            const authorName = usersMap[review.id_user] || `Usuário #${review.id_user}`;
+                            const isMyReview = currentUser && (currentUser.id === review.id_user);
+
+                            return (
+                                <div key={review.id_avaliacao} className="bg-white/5 p-5 rounded-lg border border-white/5 flex justify-between items-start group hover:border-white/20 transition-all">
+                                    <div className="w-full">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <StarRating rating={review.nota} />
+                                            <span className="text-primary font-bold text-lg">{authorName}</span>
+                                        </div>
+                                        <p className="text-gray-200">{review.comentario}</p>
+                                    </div>
+                                    
+                                    {isMyReview && (
+                                        <button 
+                                            onClick={() => handleDeleteReview(review.id_avaliacao)}
+                                            className="ml-4 text-gray-500 hover:text-red-500 transition-colors"
+                                            title="Excluir minha avaliação"
+                                        >
+                                            <span className="text-sm">Excluir</span>
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+            {/* ======================================================= */}
 
             <Popup isOpen={isPopUpOpen} onPopUpClick={fecharPopup} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90">
                 <div className="relative">

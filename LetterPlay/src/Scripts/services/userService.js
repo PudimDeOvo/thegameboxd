@@ -20,6 +20,16 @@ export const getUserProfile = async ( ) => {
     }
 };
 
+export const getUserProfilePic = async ( ) => {
+    try {
+        const response = await api.get('/me/pictures');
+        return response.data;
+    } catch (error) {
+        console.error("Erro ao buscar foto de perfil do usuario", error);
+        throw error;
+    }
+};
+
 export const uploadProfilePicture = async (file) => {
     const formData = new FormData;
     formData.append('profile_pic', file);

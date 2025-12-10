@@ -6,21 +6,34 @@ import avatarPerfil from '/src/assets/GenericAvatar.png';
 import BttOptPerfil from "./BttOptPerfil";
 import { searchGames } from "../api/searchApi"; 
 
-function HeaderUI() {
+function HeaderUI({ user, isHome }) {
     const [popupProfileOpen, setPopupProfileOpen] = useState(false);
-    
-    // Search States
+
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showResults, setShowResults] = useState(false);
     
     const navigate = useNavigate();
-    const searchRef = useRef(null); // To detect clicks outside
+    const searchRef = useRef(null); 
 
     const togglePopup = () => setPopupProfileOpen(prev => !prev);
 
-    // --- HELPER: Clean Data (Same logic as GameList) ---
+    const handleProfileClick = () => {
+
+        if (isHome && !user) {
+            navigate("/register");
+        } else {
+            togglePopup();
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userId");
+        window.location.href = "/";
+    };
+
     const formatGameData = (item) => {
         const game = item.jogo || item;
         
@@ -43,7 +56,6 @@ function HeaderUI() {
         };
     };
 
-    // --- EFFECT: Search with Debounce ---
     useEffect(() => {
         if (searchTerm.length < 3) {
             setSearchResults([]);
@@ -55,13 +67,11 @@ function HeaderUI() {
             try {
                 const rawData = await searchGames(searchTerm);
                 
-                // Handle different array structures
                 let list = [];
                 if (Array.isArray(rawData)) list = rawData;
                 else if (Array.isArray(rawData.data)) list = rawData.data;
                 else if (Array.isArray(rawData.results)) list = rawData.results;
 
-                // Format results immediately
                 const formatted = list.map(formatGameData);
                 setSearchResults(formatted);
                 setShowResults(true);
@@ -71,12 +81,12 @@ function HeaderUI() {
             } finally {
                 setIsSearching(false);
             }
-        }, 500); // Wait 500ms after typing stops
+        }, 500); 
 
         return () => clearTimeout(delayDebounce);
     }, [searchTerm]);
 
-    // --- HANDLE CLICK OUTSIDE ---
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -87,11 +97,11 @@ function HeaderUI() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // --- NAVIGATE TO GAME ---
+
     const handleGameClick = (game) => {
         setShowResults(false);
-        setSearchTerm(""); 
-        navigate("/aboutGame", { state: { infosGame: game } });
+        setSearchTerm("");
+        navigate("/AboutGame", { state: { infosGame: game } });
     };
 
     return (
@@ -103,7 +113,6 @@ function HeaderUI() {
                 </div>
             </Link>
 
-            {/* SEARCH BAR CONTAINER */}
             <div id="divBarraPesquisa" className="relative" ref={searchRef}>
                 <input 
                     className="rounded-full w-96 h-10 px-4 bg-gray-300 mt-2 text-black focus:outline-none focus:ring-2 focus:ring-primary" 
@@ -115,7 +124,6 @@ function HeaderUI() {
                     }}
                 />
 
-                {/* SEARCH RESULTS DROPDOWN */}
                 {showResults && (searchTerm.length >= 3) && (
                     <div className="absolute top-14 left-0 w-96 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-[100]">
                         {isSearching ? (
@@ -127,7 +135,7 @@ function HeaderUI() {
                                     onClick={() => handleGameClick(game)}
                                     className="flex items-center gap-3 p-3 hover:bg-gray-800 cursor-pointer border-b border-gray-800 last:border-none transition-colors"
                                 >
-                                    {/* Small Cover */}
+
                                     <div className="w-12 h-16 bg-gray-700 rounded overflow-hidden shrink-0">
                                         {game.cover_url ? (
                                             <img src={game.cover_url} alt="" className="w-full h-full object-cover" />
@@ -136,7 +144,7 @@ function HeaderUI() {
                                         )}
                                     </div>
                                     
-                                    {/* Info */}
+
                                     <div className="flex flex-col overflow-hidden">
                                         <span className="text-white font-bold text-sm truncate">{game.name}</span>
                                         <span className="text-gray-400 text-xs truncate">
@@ -153,16 +161,16 @@ function HeaderUI() {
             </div>
 
             <div id="divLinkAbas" className="flex h-4 gap-12 mt-2">
-                <Link to={"/jogos"} >
+                <Link to={(isHome && !user) ? "/register" : "/jogos"} >
                     <Typography variant="default" className="text-lg hover:text-primary transition-colors">Jogos</Typography>
                 </Link>
-                <Link to={"/lists"}>
-                    <Typography variant="default" className="text-lg hover:text-primary transition-colors">Listas</Typography>
+                <Link to={(isHome && !user) ? "/register" : "/lists"}>
+                    <Typography variant="default" className="text-lg">Listas</Typography>
                 </Link>
                 
                 <div id="divOptPerfil" className="relative">
-                    <button onClick={togglePopup}>
-                        <img src={avatarPerfil} alt="Perfil" className="h-12 -mt-2 cursor-pointer rounded-full border-2 border-transparent hover:border-primary transition-all" />
+                    <button onClick={handleProfileClick}>
+                        <img src={avatarPerfil} alt="" className="h-12 -mt-2 cursor-pointer" />
                     </button>
                 </div>
 

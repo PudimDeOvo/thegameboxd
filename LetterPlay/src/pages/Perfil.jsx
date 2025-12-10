@@ -3,11 +3,9 @@ import { Link } from "react-router-dom";
 import { HeaderUI, TypographyUI, Popup, CardUI } from "../Scripts/ui"; 
 import ShowLists from "../Scripts/services/ShowLists";
 
-// Assets
 import avatarDefault from '/src/assets/GenericAvatar.png';
 import iconEdit from '/src/assets/edit.png';
 
-// API & Services
 import { 
     uploadProfilePicture, 
     getUserProfile, 
@@ -19,7 +17,6 @@ import {
     getPlayedGames 
 } from '../Scripts/api/watchListApi'; 
 
-// --- 1. TAB COMPONENT ---
 function OptLists({ activeTab, setActiveTab }) {
     const tabs = [
         { id: "favorites", label: "Favoritos" },
@@ -50,7 +47,6 @@ function OptLists({ activeTab, setActiveTab }) {
     );
 }
 
-// --- 2. REUSABLE GAMES GRID (For Favorites/Played) ---
 function UserGamesGrid({ fetchFunction }) {
     const [games, setGames] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -58,20 +54,16 @@ function UserGamesGrid({ fetchFunction }) {
     useEffect(() => {
         async function loadGames() {
             try {
-                // Fetch data using the passed function (getFavorites or getPlayedGames)
-                const rawData = await fetchFunction();
-                
-                // Ensure it's an array
+                const rawData = await fetchFunction();  
+
                 let list = [];
                 if (Array.isArray(rawData)) list = rawData;
                 else if (Array.isArray(rawData.data)) list = rawData.data;
 
-                // Map Backend Data -> CardUI Format
                 const formatted = list.map(item => {
-                    // Handle wrapper: API usually returns { status:..., jogo: { ... } }
+
                     const game = item.jogo || item; 
                     
-                    // Clean Image URL
                     let cover = game.cover?.url || game.cover_url || game.capa_url || "";
                     if (cover.startsWith("//")) cover = `https:${cover}`;
                     if (cover.includes("t_thumb")) cover = cover.replace("t_thumb", "t_cover_big");
@@ -119,14 +111,12 @@ function UserGamesGrid({ fetchFunction }) {
     );
 }
 
-// --- 3. MAIN PERFIL COMPONENT ---
 export function Perfil() {
     
-    // UI State
+
     const [isPopUpOpen, setIsPopUpOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("favorites");
-    
-    // User Data State
+
     const [user, setUser] = useState({
         id: null,
         username: 'Carregando...',
@@ -134,7 +124,6 @@ export function Perfil() {
         profilePicture: ''
     });
 
-    // Edit Form State
     const [editForm, setEditForm] = useState({
         username: '',
         email: '',
@@ -142,7 +131,6 @@ export function Perfil() {
         previewUrl: null
     });
 
-    // Load User Data
     const carregarDados = async () => {
         try {
             const dados = await getUserProfile();
@@ -161,7 +149,6 @@ export function Perfil() {
         carregarDados();
     }, []);
 
-    // Save Profile
     const handleSave = async () => {
         try {
             if (!editForm.username || !editForm.email) {
@@ -169,12 +156,11 @@ export function Perfil() {
                 return;
             }
 
-            // Save Text Data
             if(editForm.username !== user.username || editForm.email !== user.email){
                 await updateUser(user.id, { username: editForm.username, email: editForm.email});
             }
 
-            // Save Image
+
             if(editForm.file){
                 await uploadProfilePicture(editForm.file);
             }
@@ -188,7 +174,6 @@ export function Perfil() {
         }
     };
 
-    // Popup Logic
     const abrirPopup = () => {
         setEditForm({ 
             username: user.username, 
@@ -216,17 +201,20 @@ export function Perfil() {
         }
     };
 
-    // Avatar Logic
+    const handleBackgroundFileChange = (e) => {
+        if (e.target.files[0]) {
+            setEditForm({ ...editForm, backgroundFile: e.target.files[0] });
+        }
+    };
+
     const avatarUrl = user.profilePicture || avatarDefault;
 
     return (
         <div className="w-full min-h-screen bg-background relative">
             <HeaderUI />
             
-            {/* Header / Cover Area */}
             <div className="absolute top-0 left-0 w-full h-[350px] bg-gradient-to-b from-gray-900 to-background z-0"></div>
 
-            {/* Profile Info Section */}
             <div className="flex items-end justify-between h-auto w-auto z-10 relative mt-48 px-64">
                 <div className="flex items-end gap-8">
                     <img 
@@ -250,14 +238,12 @@ export function Perfil() {
                     className="mb-6 hover:opacity-80 transition-opacity bg-black/40 p-2 rounded-full"
                     title="Editar Perfil"
                 >
-                    <img src={iconEdit} alt="Edit" className="w-6 h-6 invert" />
+                    <img src={iconEdit} alt="Edit" className="w-6 h-6 " />
                 </button>
             </div>
 
-            {/* Navigation Tabs */}
             <OptLists activeTab={activeTab} setActiveTab={setActiveTab} />
 
-            {/* DYNAMIC CONTENT AREA */}
             <div className="min-h-[500px] bg-background pb-20">
                 
                 {activeTab === "favorites" && (
@@ -277,7 +263,6 @@ export function Perfil() {
                 )}
             </div>
 
-            {/* EDIT POPUP */}
             <Popup isOpen={isPopUpOpen} onPopUpClick={fecharPopup} className="bg-background border border-gray-700">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-white">Editar Perfil</h2>
@@ -305,22 +290,22 @@ export function Perfil() {
                     </div>
 
                     <div className="grid gap-2">
-                        <label className="font-medium text-gray-300">Email</label>
-                        <input
-                            type="text"
-                            name="email" 
-                            value={editForm.email} 
-                            onChange={handleInputChange} 
-                            className="bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none"
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
                         <label className="font-medium text-gray-300">Alterar Foto</label>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={handleFileChange}
+                            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/80"
+                        />
+                    </div>
+
+                    
+                    <div className="grid">
+                        <label className="font-medium text-gray-300">Alterar Foto de fundo:</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleBackgroundFileChange}
                             className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/80"
                         />
                     </div>

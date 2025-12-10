@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { TypographyUI, CardUI } from "../ui";
 import { Link } from "react-router-dom";
-import { getWeeklyRanking } from "../api/watchListApi" 
+import { getWeeklyRanking } from "../api/watchListApi"
 
 function Ranking() {
     
-    // 2. State to hold real data
     const [topGames, setTopGames] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 3. Fetch Data on Mount
     useEffect(() => {
         async function fetchRanking() {
             try {
@@ -39,7 +37,7 @@ function Ranking() {
                         id: game.id || game.id_jogo,
                         name: game.name || game.titulo,
                         cover_url: cover,
-                        rating: game.rating || game.total_rating || game.media || game.metacritic_rating || 0,
+                        rating: game.rating || game.total_rating || game.media || 0,
                         genres: (game.genres || []).map(g => g.name || g.nome_genero || g),
                         summary: game.summary || game.descricao || "",
                         screenshots: (game.screenshots || []).map(s => s.url || s),
@@ -79,18 +77,18 @@ function Ranking() {
                     <div key={game.id} className="relative flex flex-col items-center group">
 
                         <Link
-                            to="/aboutGame"
+                            to="/loreAccurateAboutGame"
                             state={{ infosGame: game }}
                             className="transform transition-transform duration-300 hover:scale-105"
                         >
                             <CardUI infosGame={game} className="-ml-10" /> 
                         </Link>
 
-                        {/* Rank Badge (1st, 2nd, 3rd) */}
+
                         <div className={`h-12 w-12 absolute top-2 right-24 z-10 rounded-full flex items-center justify-center shadow-lg border-2 border-white/20
-                            ${index === 0 ? "bg-yellow-500 shadow-yellow-500/50" // Gold
-                            : index === 1 ? "bg-gray-400 shadow-gray-400/50"      // Silver
-                            : "bg-orange-600 shadow-orange-600/50"               // Bronze
+                            ${index === 0 ? "bg-yellow-500 shadow-yellow-500/50" 
+                            : index === 1 ? "bg-gray-400 shadow-gray-400/50"      
+                            : "bg-orange-600 shadow-orange-600/50"               
                             }`}
                         >
                             <TypographyUI as="span" variant="titulo" className="text-white text-2xl drop-shadow-md">

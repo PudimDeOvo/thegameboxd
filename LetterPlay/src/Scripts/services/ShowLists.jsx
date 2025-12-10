@@ -5,15 +5,15 @@ import { CardUI, TypographyUI, Popup } from "../ui";
 import bttAdd from "/src/assets/bttAdicionar.png";
 
 function ShowLists() {
-  // --- STATE ---
+
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [listName, setListName] = useState("");
   
-  // FORMATTED lists
+
   const [lists, setLists] = useState([]); 
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- POPUP CONTROLS ---
+
   const openPopup = () => setIsPopupOpen(true);
   
   const closePopup = () => {
@@ -21,7 +21,7 @@ function ShowLists() {
     setListName("");
   };
 
-  // --- 1. FETCH AND FORMAT DATA ---
+
   useEffect(() => {
     async function fetchLists() {
       try {
@@ -55,7 +55,7 @@ function ShowLists() {
     fetchLists();
   }, []);
 
-  // --- 2. SAVE NEW LIST ---
+
   const saveList = async () => {
     if (!listName.trim()) return;
 
@@ -82,7 +82,7 @@ function ShowLists() {
 
       <div id="sectionCards" className="flex flex-wrap gap-16 p-10 m-24">
         
-        {/* CREATE CARD */}
+
         <div
           onClick={openPopup}
           className="h-96 w-72 bg-black/60 rounded-xl hover:bg-primary/50 cursor-pointer flex flex-col items-center justify-center text-center gap-4 transition-colors"
@@ -91,7 +91,7 @@ function ShowLists() {
           <img src={bttAdd} alt="Add" className="h-12 opacity-70" />
         </div>
 
-        {/* LIST CARDS */}
+
         {lists.map((list) => (
           <Link
             to="/aboutlist"
@@ -106,7 +106,7 @@ function ShowLists() {
         ))}
       </div>
 
-      {/* POPUP */}
+
       <Popup
         isOpen={isPopupOpen}
         onPopUpClick={closePopup}

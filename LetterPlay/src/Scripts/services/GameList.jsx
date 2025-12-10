@@ -21,7 +21,6 @@ function GameList() {
                 const formatted = list.map((item) => {
                     const game = item.jogo || item; 
 
-                    // Safe Cover URL Logic
                     let cover = game.cover?.url || game.cover_url || game.capa_url || game.url_capa || "";
                     if (typeof cover === 'string') {
                         if (cover.startsWith("//")) cover = `https:${cover}`;

@@ -12,7 +12,6 @@ import { Register } from './pages/Register';
 import { Login } from './pages/Login';
 import { Lists } from './pages/Lists';
 import AboutList from "./pages/AboutList";
-
 function App() {
   const [count, setCount] = useState(0)
 

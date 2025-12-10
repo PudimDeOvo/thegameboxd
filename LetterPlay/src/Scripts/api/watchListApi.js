@@ -57,7 +57,6 @@ export async function getFavorites() {
   }
 }
 
-// --- 2. GET PLAYED GAMES (Filter by Status) ---
 export async function getPlayedGames() {
   try {
       const myLists = await getMyWatchlists();
@@ -75,6 +74,7 @@ export async function getPlayedGames() {
           const games = list.jogos || list.games || [];
           
           games.forEach(item => {
+
               if (item.status_jogo === "JOGADO") {
                   const gameId = item.jogo?.id_jogo || item.id;
                   if (!seenGameIds.has(gameId)) {

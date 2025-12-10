@@ -51,7 +51,10 @@ function BttOptPerfil({ isOpen }) {
             </div>
 
             <div className="flex flex-col gap-4 py-2 px-4 w-full">
-                <div className="flex items-center gap-2 cursor-pointer hover:bg-red-50 p-1 rounded">
+                <div 
+                    onClick={handlelogout} 
+                    className="flex items-center gap-2 cursor-pointer hover:bg-red-50 p-1 rounded"
+                >
                     {IconExit}
                     <TypographyUI as="span" variant="default" className="pt-0.5 text-sm !text-black">Sair</TypographyUI>
                 </div>
