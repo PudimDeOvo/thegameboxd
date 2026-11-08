@@ -14,9 +14,6 @@ from app.schemas.watchlist import (
 from app.schemas.review import MyReviewPublic, GameRankingPublic
 from app.schemas.watchlist import UpdateGameStatus
 
-IGDB_CLIENT_ID = "wsv3svrgvvr70488d7x2qqbzv13432"
-IGDB_CLIENT_SECRET = "n2de8w4urryjkwzikm7rbov1xglrne"
-
 def get_watchlist_service(session: SessionDep):
     repo = WatchlistRepository(session)
     client = IGDBClient(IGDB_CLIENT_ID, IGDB_CLIENT_SECRET)
